@@ -1,0 +1,5 @@
+# Project exclude paths
+/project/target/
+/target/
+/target/scala-2.12/sbt-1.0/classes/
+/target/streams/

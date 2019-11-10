@@ -7,7 +7,7 @@ import sbt.Keys.TaskStreams
 import sbt.io.syntax.File
 import sbt._
 
-object Jextract2NAST {
+object AstGenerator {
   def apply(
       headerFile: File,
       streams: TaskStreams

@@ -120,6 +120,6 @@ object JavaExtract {
     }
     recursiveProcessing(javaDumpLocation, logger)(
       (f, n, _) => f / s"${n}_h.java"
-    ) -> (!cacheMatch || !commandMatch || !libMatch)
+    ) -> (cacheMatch && commandMatch && libMatch)
   }
 }

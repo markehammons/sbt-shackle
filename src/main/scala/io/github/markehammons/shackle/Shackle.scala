@@ -5,10 +5,10 @@ import sbt.io.syntax.File
 import sbt._
 import sbt.Keys._
 
+import dotty.HeaderCompiler
+
 object Shackle extends AutoPlugin {
   object autoImport {
-    val includeDirectory =
-      settingKey[File]("location of your system's default include directory")
     val headers = settingKey[Set[File]]("header files to pass to jextract")
     val includePaths = settingKey[Set[File]](
       "paths to include directories that jextract will need"
@@ -40,7 +40,7 @@ object Shackle extends AutoPlugin {
     jextract := {
       implicit val logger = streams.value
 
-      val workDirectory = target.in(compile).value / "nJExtract"
+      val workDirectory = target.in(compile).value / "jextract"
 
       JavaExtract(
         workDirectory,
@@ -56,24 +56,37 @@ object Shackle extends AutoPlugin {
     shackle := {
       val logger = streams.value
 
+      val workDirectory = target.in(compile).value / "jextract" / "javaSources"
+
       val (extractedJ, cached) = jextract.value
-      logger.log.debug("beginning ast generation")
 
-      val asts = extractedJ.map(Jextract2NAST.apply(_, logger))
+      val sourceDir = (sourceManaged in Compile).value
+      val sources = extractedJ
+        .map(IO.relativize(workDirectory, _))
+        .flatMap(
+          _.map(f => sourceDir / s"${f.stripSuffix(".java")}.scala")
+            .fold(List.empty[File])(f => List(f))
+        )
 
-      logger.log.debug("completed generation of asts:")
+      if (cached && sources.forall(_.exists())) {
+        logger.log.info(s"skipping regenerating of files")
+        sources
+      } else {
+        val asts = extractedJ.map(AstGenerator.apply(_, logger))
 
-      val source = (sourceManaged in Compile).value
-      val renamePhase = asts.map {
-        case Right(header) => Renamer.apply(header, Minimal)
-        case Left(exception) =>
-          sys.error(
-            s"${exception.getMessage}\n" + exception.getStackTrace
-              .mkString("\n")
-          )
+        logger.log.debug("completed generation of asts:")
+
+        val renamePhase = asts.map {
+          case Right(header) => Renamer.apply(header, Minimal)
+          case Left(exception) =>
+            sys.error(
+              s"${exception.getMessage}\n" + exception.getStackTrace
+                .mkString("\n")
+            )
+        }
+
+        renamePhase.map(HeaderCompiler.compile(_, sourceDir))
       }
-
-      renamePhase.map(HeaderAstCompiler.compile(_, source))
     },
     sourceGenerators in Compile += shackle.taskValue,
     includePaths := Set.empty,

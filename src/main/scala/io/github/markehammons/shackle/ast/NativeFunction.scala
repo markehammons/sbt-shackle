@@ -13,7 +13,7 @@ case class NativeFunction(
     name: String,
     signature: Signature,
     returnType: TypeAst,
-    parameters: List[TypeAst]
+    parameters: List[Param]
 )
 
 object NativeFunction {
@@ -47,8 +47,7 @@ object NativeFunction {
       )
       .map(Signature)
     val returnType = TypeAst.fromType(md.getType)
-    val params =
-      md.getParameters.asScala.map(_.getType).toList.map(TypeAst.fromType)
+    val params = Param.fromMethodDeclaration(md)
 
     for {
       sig <- signature

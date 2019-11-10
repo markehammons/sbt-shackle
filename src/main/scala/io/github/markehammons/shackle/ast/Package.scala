@@ -18,4 +18,8 @@ object Package {
       .map(n => name.getIdentifier :: fromName(n))
       .getOrElse(List(name.getIdentifier))
   }
+
+  def apply(args: String*): Package = {
+    Package(args.toList)
+  }
 }

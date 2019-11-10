@@ -18,6 +18,7 @@ object Renamer {
         case "new"                    => "new$"
         case "object"                 => "object$"
         case "notify"                 => "notify$"
+        case "match"                  => "match$"
         case str if str.endsWith("_") => s"$str$$"
         case str                      => str
       }
@@ -36,7 +37,14 @@ object Renamer {
       nativeStringConstants = ast.nativeStringConstants.map { nsc =>
         val phase1 = renameFunction(nsc.name)
         nsc.copy(name = phase1)
-      }
+      },
+      functions = ast.functions.map(
+        func =>
+          func.copy(parameters = func.parameters.map { p =>
+            val phase1 = renameFunction(p.name)
+            p.copy(name = phase1)
+          })
+      )
     )
   }
 }

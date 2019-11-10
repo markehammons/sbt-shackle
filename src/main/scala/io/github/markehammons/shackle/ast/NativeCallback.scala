@@ -10,7 +10,7 @@ case class NativeCallback(
     name: ClassName,
     signature: Signature,
     returnType: TypeAst,
-    parameters: List[TypeAst]
+    parameters: List[Param]
 )
 
 object NativeCallback {
@@ -49,8 +49,7 @@ object NativeCallback {
     val method = coi.getMethods.asScala.head
     val returnType = TypeAst.fromType(method.getType)
 
-    val params =
-      method.getParameters.asScala.map(p => TypeAst.fromType(p.getType)).toList
+    val params = Param.fromMethodDeclaration(method)
 
     for {
       s <- signature

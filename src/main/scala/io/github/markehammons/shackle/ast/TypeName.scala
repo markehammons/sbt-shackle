@@ -19,6 +19,8 @@ sealed trait TypeAst {
   def classNames: List[ClassName]
 
   def asDottyString: String
+
+  def asBoxedDottyString: String = asDottyString
 }
 
 object TypeAst {
@@ -39,16 +41,16 @@ object TypeAst {
       case _: typ_?    => WildcardType
       case classTyp: ClassOrInterfaceType
           if classTyp.getName.asString == "Void" =>
-        UnitType
+        Clazz(ClassName(Package("java", "lang"), "Void"))
       case classType: ClassOrInterfaceType
           if classType.getName.asString() == "Byte" =>
-        ByteType
+        Clazz(ClassName(Package("java", "lang"), "Byte"))
       case classType: ClassOrInterfaceType
           if classType.getName.asString() == "Integer" =>
-        IntType
+        Clazz(ClassName(Package("java", "lang"), "Integer"))
       case classType: ClassOrInterfaceType
           if classType.getName.asString() == "Long" =>
-        LongType
+        Clazz(ClassName(Package("java", "lang"), "Long"))
       case classTyp: ClassOrInterfaceType
           if classTyp.getTypeArguments.asScala.isDefined && classTyp.getName
             .asString() == "Pointer" =>
@@ -87,6 +89,8 @@ case object IntType extends TypeAst {
     List(ClassName(Package(Nil), "Int"))
 
   override def asDottyString: String = "Int"
+
+  override def asBoxedDottyString: String = "java.lang.Integer"
 }
 
 case object LongType extends TypeAst {
@@ -94,6 +98,8 @@ case object LongType extends TypeAst {
     List(ClassName(Package(Nil), "Long"))
 
   override def asDottyString: String = "Long"
+
+  override def asBoxedDottyString: String = "java.lang.Long"
 }
 
 case object ShortType extends TypeAst {
@@ -101,6 +107,8 @@ case object ShortType extends TypeAst {
     List(ClassName(Package(Nil), "Short"))
 
   override def asDottyString: String = "Short"
+
+  override def asBoxedDottyString: String = "java.lang.Short"
 }
 
 case object ByteType extends TypeAst {
@@ -108,6 +116,8 @@ case object ByteType extends TypeAst {
     List(ClassName(Package(Nil), "Byte"))
 
   override def asDottyString: String = "Byte"
+
+  override def asBoxedDottyString: String = "java.lang.Byte"
 }
 
 case object BooleanType extends TypeAst {
@@ -115,6 +125,8 @@ case object BooleanType extends TypeAst {
     List(ClassName(Package(Nil), "Boolean"))
 
   override def asDottyString: String = "Boolean"
+
+  override def asBoxedDottyString: String = "java.lang.Boolean"
 }
 
 case object FloatType extends TypeAst {
@@ -122,6 +134,8 @@ case object FloatType extends TypeAst {
     List(ClassName(Package(Nil), "Float"))
 
   override def asDottyString: String = "Float"
+
+  override def asBoxedDottyString: String = "java.lang.Float"
 }
 
 case object DoubleType extends TypeAst {
@@ -129,6 +143,8 @@ case object DoubleType extends TypeAst {
     List(ClassName(Package(Nil), "Double"))
 
   override def asDottyString: String = "Double"
+
+  override def asBoxedDottyString: String = "java.lang.Double"
 }
 case object UnitType extends TypeAst {
   override def classNames: List[ClassName] =
@@ -159,7 +175,7 @@ case class PointerType(typeAst: TypeAst) extends TypeAst {
     PointerType.pointerTypeName :: typeAst.classNames
 
   override def asDottyString: String =
-    s"${PointerType.pointerTypeName.asDottyString}[${typeAst.asDottyString}]"
+    s"${PointerType.pointerTypeName.asDottyString}[${typeAst.asBoxedDottyString}]"
 }
 
 object PointerType {
@@ -172,7 +188,7 @@ case class ArrayType(typeAst: TypeAst) extends TypeAst {
       : List[ClassName] = ArrayType.arrayTypeName :: typeAst.classNames
 
   override def asDottyString: String =
-    s"${ArrayType.arrayTypeName.asDottyString}[${typeAst.asDottyString}]"
+    s"${ArrayType.arrayTypeName.asDottyString}[${typeAst.asBoxedDottyString}]"
 }
 
 object ArrayType {
@@ -185,7 +201,7 @@ case class CallbackType(typeAst: TypeAst) extends TypeAst {
       : List[ClassName] = CallbackType.callbackTypeName :: typeAst.classNames
 
   override def asDottyString: String =
-    s"${CallbackType.callbackTypeName.asDottyString}[${typeAst.asDottyString}]"
+    s"${CallbackType.callbackTypeName.asDottyString}[${typeAst.asBoxedDottyString}]"
 }
 
 object CallbackType {

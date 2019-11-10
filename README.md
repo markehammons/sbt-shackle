@@ -7,6 +7,7 @@ An sbt plugin for generating scala bindings to C libraries
 * Shackle cannot bind to c methods with varargs
 * Only outputs dotty compatible scala code
 * Requires panama early access build 14-panama+1-15
+* Methods, parameters, and struct members may be renamed if they are scala keywords or otherwise not workable as scala identifiers. Usually, this rename takes the form of adding an $ at the end (such as `class$` instead of `class`).
 
 ## Settings
 

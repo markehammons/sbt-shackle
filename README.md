@@ -7,6 +7,13 @@ An sbt plugin for generating scala bindings to C libraries
 * Shackle cannot bind to c methods with varargs
 * Only outputs dotty compatible scala code
 * Requires panama early access build 14-panama+1-15
+* Methods, parameters, and struct members may be renamed if they are scala keywords or otherwise not workable as scala identifiers. Usually, this rename takes the form of adding an $ at the end (such as `class$` instead of `class`).
+
+## Struct bindings
+Members of C struct types are made to use scala style getters and accessors. Each member of a C-struct has 3 methods to interact with it:
+* `member: Int` - the getter
+* `member_=(i: Int): Unit` - the setter (used like `member = 5`)
+* `$member: Pointer[Int]` - pointer to the address of the member
 
 ## Settings
 

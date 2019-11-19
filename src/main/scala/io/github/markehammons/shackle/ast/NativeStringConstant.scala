@@ -4,6 +4,14 @@ import com.github.javaparser.ast.body.{
   ClassOrInterfaceDeclaration,
   MethodDeclaration
 }
+import io.github.markehammons.shackle.ast.printer.{
+  Emittable,
+  Line,
+  Method,
+  Printable,
+  SVAnnotation,
+  StringLiteral
+}
 import io.github.markehammons.shackle.exceptions.AnnotationNotFoundException
 
 import scala.compat.java8.OptionConverters._
@@ -13,7 +21,16 @@ case class NativeStringConstant(
     nativeLocation: NativeLocation,
     name: String,
     value: String
-)
+) extends Printable {
+  def toDotty(): Either[Exception, Seq[Emittable]] = {
+    for {
+      nativeRepr <- nativeLocation.toDotty()
+      annRepr <- SVAnnotation("NativeStringConstant", StringLiteral(""))
+        .toDotty()
+      methodRepr <- Method(name, PointerType(ByteType), Nil, Nil).toDotty()
+    } yield nativeRepr ++ annRepr ++ methodRepr
+  }
+}
 
 object NativeStringConstant {
   def fromMethodDeclaration(

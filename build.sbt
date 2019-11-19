@@ -1,5 +1,5 @@
 name := "sbt-shackle"
-version := "0.0.1"
+version := "0.0.2-SNAPSHOT"
 organization := "io.github.markehammons"
 scalaVersion := "2.12.10"
 sbtPlugin := true

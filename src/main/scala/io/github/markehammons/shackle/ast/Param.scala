@@ -1,9 +1,12 @@
 package io.github.markehammons.shackle.ast
 
 import com.github.javaparser.ast.body.{MethodDeclaration, Parameter}
+import io.github.markehammons.shackle.ast.printer.Renderable
+
 import scala.collection.JavaConverters._
 
-case class Param(name: String, typ: TypeAst, varArgs: Boolean) {
+case class Param(name: String, typ: TypeAst, varArgs: Boolean)
+    extends Renderable {
   def asDottyString: String = {
     s"$name: ${typ.asDottyString}${if (varArgs) "*" else ""}"
   }

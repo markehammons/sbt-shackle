@@ -10,6 +10,14 @@ import com.github.javaparser.ast.expr.{
   LiteralExpr,
   LongLiteralExpr
 }
+import io.github.markehammons.shackle.ast.printer.{
+  Emittable,
+  Line,
+  Method,
+  NumericLiteral,
+  Printable,
+  SVAnnotation
+}
 import io.github.markehammons.shackle.exceptions.AnnotationKeyNotFound
 
 import scala.compat.java8.OptionConverters._
@@ -20,7 +28,18 @@ case class NativeNumericConstant(
     typ: TypeAst,
     name: String,
     value: String
-)
+) extends Printable {
+  def toDotty(): Either[Exception, Seq[Emittable]] = {
+    for {
+      locationRepr <- nativeLocation.toDotty()
+      annRepr <- SVAnnotation(
+        "NativeNumericConstant",
+        NumericLiteral(value)
+      ).toDotty()
+      methodRepr <- Method(name, typ, Nil, Nil).toDotty()
+    } yield locationRepr ++ annRepr ++ methodRepr
+  }
+}
 
 object NativeNumericConstant {
   def fromMethodDeclaration(

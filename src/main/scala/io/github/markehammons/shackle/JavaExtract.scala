@@ -8,6 +8,7 @@ import sbt.io.syntax.File
 import sbt._
 
 object JavaExtract {
+
   private val regex = """(.*)_(h|lib)\.java""".r
 
   private def recursiveProcessing[T](
@@ -77,6 +78,8 @@ object JavaExtract {
         "--src-dump-dir",
         javaDumpLocation.getCanonicalPath
       )
+
+    logger.log.debug(s"jextract command: jextract ${command.mkString(" ")}")
     val cCmdCRC = {
       md.update(command.mkString(" ").getBytes)
       base64.encodeToString(md.digest)

@@ -30,6 +30,9 @@ object Shackle extends AutoPlugin {
     val shackle =
       taskKey[Seq[File]]("generates a scala binding for the configured library")
 
+    val useNewGenerator =
+      settingKey[Boolean]("whether to use the new generation or not")
+
     val camelCaseNaming =
       settingKey[Boolean]("headers, structs, and methods use camel-case")
   }
@@ -68,6 +71,8 @@ object Shackle extends AutoPlugin {
             .fold(List.empty[File])(f => List(f))
         )
 
+      val useNgenerator = useNewGenerator.?.value
+
       if (cached && sources.forall(_.exists())) {
         logger.log.info(s"skipping regenerating of files")
         sources
@@ -85,7 +90,12 @@ object Shackle extends AutoPlugin {
             )
         }
 
-        renamePhase.map(HeaderCompiler.compile(_, sourceDir))
+        if (useNgenerator.forall(identity)) {
+          logger.log.info("using new generator")
+          renamePhase.map(HeaderCompiler.nCompile(_, sourceDir))
+        } else {
+          renamePhase.map(HeaderCompiler.compile(_, sourceDir))
+        }
       }
     },
     sourceGenerators in Compile += shackle.taskValue,

@@ -4,6 +4,15 @@ import java.io.File
 
 import com.github.javaparser.ast.body.BodyDeclaration
 import com.github.javaparser.ast.expr.AnnotationExpr
+import io.github.markehammons.shackle.ast.printer.{
+  Emittable,
+  Indent,
+  Line,
+  MVAnnotation,
+  NumericLiteral,
+  Printable,
+  StringLiteral
+}
 import io.github.markehammons.shackle.exceptions.{
   AnnotationKeyNotFound,
   AnnotationNotFoundException
@@ -13,6 +22,16 @@ import scala.compat.java8.OptionConverters._
 import scala.collection.JavaConverters._
 
 case class NativeLocation(file: File, line: Long, column: Long)
+    extends Printable {
+  def toDotty(): Either[Exception, Seq[Emittable]] = {
+    MVAnnotation(
+      "NativeLocation",
+      "file" -> StringLiteral(file.getCanonicalPath),
+      "line" -> NumericLiteral(line.toString),
+      "column" -> NumericLiteral(column.toString)
+    ).toDotty
+  }
+}
 
 object NativeLocation {
   def fromAnnotee(t: BodyDeclaration[_]): Either[Exception, NativeLocation] = {

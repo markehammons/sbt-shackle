@@ -1,6 +1,15 @@
 package io.github.markehammons.shackle.ast
 
 import com.github.javaparser.ast.body.ClassOrInterfaceDeclaration
+import io.github.markehammons.shackle.ast.printer.{
+  Emittable,
+  Line,
+  Method,
+  Printable,
+  SVAnnotation,
+  StringLiteral,
+  Trait
+}
 import io.github.markehammons.shackle.exceptions.AnnotationNotFoundException
 
 import scala.collection.JavaConverters._
@@ -11,7 +20,22 @@ case class NativeCallback(
     signature: Signature,
     returnType: TypeAst,
     parameters: List[Param]
-)
+) extends Printable {
+  override def toDotty(): Either[Exception, Seq[Emittable]] = {
+    val t = Trait(
+      name,
+      Nil,
+      Seq(
+        Method("run", returnType, parameters, Nil)
+      )
+    )
+    for {
+      traitRepr <- t.toDotty()
+      annRepr <- SVAnnotation("NativeCallback", StringLiteral(signature.string))
+        .toDotty()
+    } yield (Line("@FunctionalInterface") +: annRepr) ++ traitRepr
+  }
+}
 
 object NativeCallback {
   def fromHeader(coi: ClassOrInterfaceDeclaration): List[NativeCallback] = {

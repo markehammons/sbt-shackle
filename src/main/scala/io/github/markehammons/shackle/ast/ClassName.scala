@@ -1,8 +1,11 @@
 package io.github.markehammons.shackle.ast
 
 import com.github.javaparser.ast.expr.ClassExpr
+import io.github.markehammons.shackle.ast.printer.{Literal, Renderable}
 
-case class ClassName(pkg: Package, name: String) {
+case class ClassName(pkg: Package, name: String)
+    extends Literal
+    with Renderable {
   def asDottyString: String =
     if (pkg.asDottyString.isBlank) name else s"${pkg.asDottyString}.$name"
 }

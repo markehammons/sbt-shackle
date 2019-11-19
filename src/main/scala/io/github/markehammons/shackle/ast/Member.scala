@@ -4,6 +4,16 @@ import com.github.javaparser.ast.body.{
   ClassOrInterfaceDeclaration,
   MethodDeclaration
 }
+import io.github.markehammons.shackle.ast.printer.{
+  Emittable,
+  Method,
+  MethodCall,
+  NameLiteral,
+  Object,
+  Printable,
+  SVAnnotation,
+  StringLiteral
+}
 import io.github.markehammons.shackle.exceptions.AnnotationNotFoundException
 
 import scala.compat.java8.OptionConverters._
@@ -14,7 +24,43 @@ case class Member(
     name: String,
     typ: TypeAst,
     cname: String
-)
+) {
+
+//  override def toDotty(): Either[Exception, Seq[Emittable]] = {
+//    for {
+//      nLoc <- nativeLocation.toDotty()
+//      getterAnn <- SVAnnotation("NativeGetter", StringLiteral(cname)).toDotty()
+//      setterAnn <- SVAnnotation("NativeSetter", StringLiteral(cname)).toDotty()
+//      pointerAnn <- SVAnnotation("NativeAddressof", StringLiteral(cname))
+//        .toDotty()
+//      getterM <- Method(name, priv = true).toDotty()
+//      setterM <- Method(
+//        s"${name}$$set",
+//        UnitType,
+//        Seq(Param(name, typ, false)),
+//        priv = true
+//      ).toDotty()
+//      pointerM <- Method(s"${name}$$ptr", PointerType(typ), priv = true)
+//        .toDotty()
+//      obj <- Object(
+//        ClassName(Package(Nil), name),
+//        Nil,
+//        Seq(
+//          Method("apply", typ, Nil, Seq(MethodCall(s"${name}$$get"))),
+//          Method(
+//            "_=",
+//            UnitType,
+//            Seq(Param("value", typ, false)),
+//            Seq(MethodCall(s"${name}$$set", Seq(NameLiteral("value"))))
+//          ),
+//          Method()
+//        )
+//      )
+//    } yield {
+//      nLoc ++ getterAnn ++ getterM ++ setterAnn ++ setterM ++ pointerAnn ++ pointerM
+//    }
+//  }
+}
 
 object Member {
   def fromMethodDeclaration(

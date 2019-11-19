@@ -4,6 +4,18 @@ import java.io.File
 
 import io.github.markehammons.shackle.ast._
 import sbt.io.IO
+import io.github.markehammons.shackle.ast.printer.{
+  ArrayLiteral,
+  ClassLiteral,
+  Emittable,
+  Indent,
+  Line,
+  MVAnnotation,
+  Method,
+  Object,
+  StringLiteral,
+  Trait
+}
 import sbt._
 
 object HeaderCompiler {
@@ -15,7 +27,69 @@ object HeaderCompiler {
     file
   }
 
+  def nCompile(header: Header, autoSourceDir: File): File = {
+    val file = header.name.pkg.path
+      .foldLeft(autoSourceDir)((p, s) => p / s) / s"${header.name.name}.scala"
+
+    val nh = MVAnnotation(
+      "NativeHeader",
+      "path" -> StringLiteral(header.path),
+      "libraries" -> ArrayLiteral(header.libraries.map(StringLiteral)),
+      "libraryPaths" -> ArrayLiteral(header.libraryPaths.map(StringLiteral)),
+      "resolutionContext" -> ArrayLiteral(
+        header.resolutionContext.map(cn => ClassLiteral(cn.pkg.path, cn.name))
+      )
+    )
+
+    val fileHeader = Seq(
+      Line(s"package ${header.name.pkg.asDottyString}"),
+      Line(""),
+      Line("import java.foreign.annotations._"),
+//      Line("scala.annotation.varargs"),
+      Line("")
+    )
+
+    val traitAst = Trait(
+      header.name,
+      Nil,
+      header.numericConstants ++ header.nativeStringConstants ++ header.functions
+        .filter(!_.varargs),
+      true
+    )
+
+    val objectAst = Object(
+      header.name,
+      Nil,
+      header.structs ++ header.callbacks ++ header.functions.map(
+        f =>
+          Method(
+            f.name,
+            f.returnType,
+            f.parameters,
+            Seq(
+              )
+          )
+      )
+    )
+
+    def indenter(em: Emittable): String = em match {
+      case Indent(em) => s"\t${indenter(em)}"
+      case Line(s)    => s
+    }
+
+    val ast = for {
+      traitLines <- traitAst.toDotty()
+      objectLines <- objectAst.toDotty()
+    } yield {
+      (fileHeader ++ traitLines ++ objectLines).map(indenter).mkString("\n")
+    }
+
+    ast.fold(throw _, s => { IO.write(file, s); file })
+  }
+
   def compile(header: Header, autoSourceDir: File): File = {
+
+    nCompile(header, autoSourceDir)
     val file = header.name.pkg.path.foldLeft(autoSourceDir) {
       case (p, s) => p / s
     } / s"${header.name.name}.scala"

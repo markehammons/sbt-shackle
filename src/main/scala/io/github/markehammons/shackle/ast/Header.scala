@@ -2,6 +2,7 @@ package io.github.markehammons.shackle.ast
 
 import com.github.javaparser.ast.CompilationUnit
 import com.github.javaparser.ast.body.ClassOrInterfaceDeclaration
+import io.github.markehammons.shackle.ast.printer.Printable
 import io.github.markehammons.shackle.exceptions.{
   AnnotationKeyNotFound,
   AnnotationNotFoundException,

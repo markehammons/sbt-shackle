@@ -1,4 +1,4 @@
-name: Scala CI
+name: Scala_CI
 
 on: [push]
 

@@ -2,7 +2,20 @@ package io.github.markehammons.shackle.dotty
 
 import java.io.File
 
-import com.github.javaparser.ast.ImportDeclaration
+import com.github.javaparser.ast.{
+  CompilationUnit,
+  ImportDeclaration,
+  Modifier,
+  NodeList
+}
+import com.github.javaparser.ast.body.{
+  ClassOrInterfaceDeclaration,
+  MethodDeclaration
+}
+import com.github.javaparser.ast.expr.{
+  SingleMemberAnnotationExpr,
+  StringLiteralExpr
+}
 import io.github.markehammons.shackle.ast._
 import io.github.markehammons.shackle.ast.{Package => Pkg}
 import sbt.io.IO
@@ -24,7 +37,8 @@ import io.github.markehammons.shackle.ast.printer.{
   Trait,
   VariableDeclaration,
   WildCardImport,
-  WildcardExport
+  WildcardExport,
+  CastExpression
 }
 import sbt._
 
@@ -37,9 +51,13 @@ object HeaderCompiler {
     file
   }
 
-  def nCompile(header: Header, autoSourceDir: File): File = {
+  def nCompile(header: Header, autoSourceDir: File): Seq[File] = {
     val file = header.name.pkg.path
       .foldLeft(autoSourceDir)((p, s) => p / s) / s"${header.name.name}.scala"
+    val auxFile = header.name.pkg.path
+      .foldLeft(autoSourceDir)((p, s) => p / s) / s"${header.name.name}$$AUX.java"
+
+    val varargFunctions = header.functions.filter(_.varargs)
 
     val nh = MVAnnotation(
       "NativeHeader",
@@ -53,7 +71,9 @@ object HeaderCompiler {
 
     val traitAst = Trait(
       header.name,
-      Nil,
+      if (varargFunctions.nonEmpty)
+        Seq(Clazz(header.name.copy(name = s"${header.name.name}$$AUX")))
+      else Nil,
       header.numericConstants ++ header.nativeStringConstants ++ header.functions
         .filter(!_.varargs),
       true
@@ -85,7 +105,6 @@ object HeaderCompiler {
           lzy = true
         )
       ) ++ header.functions
-        .filter(!_.varargs)
         .map(
           f =>
             Method(
@@ -95,7 +114,12 @@ object HeaderCompiler {
               Seq(
                 MethodCall(
                   s"_theLibrary.${f.name}",
-                  f.parameters.map(p => NameLiteral(p.name))
+                  f.parameters.map(
+                    p =>
+                      if (p.varArgs)
+                        CastExpression(NameLiteral(p.name), VariadicWildcard)
+                      else NameLiteral(p.name)
+                  )
                 )
               ),
               inline = true
@@ -106,6 +130,41 @@ object HeaderCompiler {
     def indenter(em: Emittable): String = em match {
       case Indent(em) => s"\t${indenter(em)}"
       case Line(s)    => s
+    }
+
+    if (varargFunctions.nonEmpty) {
+      val auxString = {
+        val cu = new CompilationUnit()
+        cu.addImport("java.foreign.annotations.*")
+        val interface = cu.addInterface(s"${header.name.name}$$AUX")
+
+        val varargsMethods = header.functions.filter(_.varargs)
+        val methods = varargsMethods.map(m => m -> interface.addMethod(m.name))
+
+        methods.foreach {
+          case (m, md) =>
+            m.parameters.foreach { p =>
+              val param = md.addAndGetParameter(p.typ.javaParserType, p.name)
+              if (p.varArgs) {
+                param.setVarArgs(true)
+              }
+              param
+            }
+            val singleMemberAnnotation = new SingleMemberAnnotationExpr()
+            singleMemberAnnotation.setName("NativeFunction")
+            singleMemberAnnotation.setMemberValue(
+              new StringLiteralExpr().setString(m.signature.string)
+            )
+            md.setPublic(true)
+            md.setType(m.returnType.javaParserType)
+            md.addAnnotation(singleMemberAnnotation)
+            md.setBody(null)
+        }
+
+        cu.setPackageDeclaration(header.name.pkg.asDottyString)
+        cu.toString
+      }
+      IO.write(auxFile, auxString)
     }
 
     val ast = for {
@@ -121,7 +180,15 @@ object HeaderCompiler {
         .mkString("\n")
     }
 
-    ast.fold(throw _, s => { IO.write(file, s); file })
+    ast.fold(throw _, s => {
+      IO.write(file, s)
+      if (varargFunctions.nonEmpty) {
+        println(s"auxfile emitted: ${auxFile.getCanonicalPath}")
+        Seq(file, auxFile)
+      } else {
+        Seq(file)
+      }
+    })
   }
 
   def compile(header: Header, autoSourceDir: File): File = {

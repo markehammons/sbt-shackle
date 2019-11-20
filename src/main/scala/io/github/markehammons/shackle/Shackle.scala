@@ -92,9 +92,9 @@ object Shackle extends AutoPlugin {
 
         if (useNgenerator.forall(identity)) {
           logger.log.info("using new generator")
-          renamePhase.map(HeaderCompiler.nCompile(_, sourceDir))
+          renamePhase.flatMap(HeaderCompiler.nCompile(_, sourceDir))
         } else {
-          renamePhase.map(HeaderCompiler.compile(_, sourceDir))
+          renamePhase.map(HeaderCompiler.compile(_, sourceDir)).flatMap(Seq(_))
         }
       }
     },

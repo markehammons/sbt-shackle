@@ -2,6 +2,8 @@
 
 An sbt plugin for generating scala bindings to C libraries
 
+[![Actions Status](https://github.com/markehammons/sbt-shackle/workflows/build/badge.svg)](https://github.com/markehammons/sbt-shackle/actions)
+
 #### Limitations
 
 * Shackle cannot bind to c methods with varargs

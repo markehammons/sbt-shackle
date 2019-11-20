@@ -2,7 +2,9 @@ package io.github.markehammons.shackle.dotty
 
 import java.io.File
 
+import com.github.javaparser.ast.ImportDeclaration
 import io.github.markehammons.shackle.ast._
+import io.github.markehammons.shackle.ast.{Package => Pkg}
 import sbt.io.IO
 import io.github.markehammons.shackle.ast.printer.{
   ArrayLiteral,
@@ -12,9 +14,17 @@ import io.github.markehammons.shackle.ast.printer.{
   Line,
   MVAnnotation,
   Method,
+  MethodCall,
+  NameLiteral,
   Object,
+  PackageDeclaration,
+  Priv,
+  SingleImport,
   StringLiteral,
-  Trait
+  Trait,
+  VariableDeclaration,
+  WildCardImport,
+  WildcardExport
 }
 import sbt._
 
@@ -41,14 +51,6 @@ object HeaderCompiler {
       )
     )
 
-    val fileHeader = Seq(
-      Line(s"package ${header.name.pkg.asDottyString}"),
-      Line(""),
-      Line("import java.foreign.annotations._"),
-//      Line("scala.annotation.varargs"),
-      Line("")
-    )
-
     val traitAst = Trait(
       header.name,
       Nil,
@@ -60,16 +62,45 @@ object HeaderCompiler {
     val objectAst = Object(
       header.name,
       Nil,
-      header.structs ++ header.callbacks ++ header.functions.map(
-        f =>
-          Method(
-            f.name,
-            f.returnType,
-            f.parameters,
-            Seq(
+      header.structs ++ header.callbacks ++ Seq(
+        SingleImport(
+          ClassName(Pkg("java", "foreign"), "Libraries")
+        ),
+        SingleImport(
+          ClassName(Pkg("java", "lang", "invoke"), "MethodHandles")
+        ),
+        VariableDeclaration(
+          NameLiteral("_theLibrary"),
+          Clazz(header.name),
+          Seq(
+            MethodCall(
+              "Libraries.bind",
+              Seq(
+                MethodCall("MethodHandles.lookup"),
+                ClassLiteral(header.name.pkg.path, header.name.name)
               )
-          )
-      )
+            )
+          ),
+          accessModifier = Priv,
+          lzy = true
+        )
+      ) ++ header.functions
+        .filter(!_.varargs)
+        .map(
+          f =>
+            Method(
+              f.name,
+              f.returnType,
+              f.parameters,
+              Seq(
+                MethodCall(
+                  s"_theLibrary.${f.name}",
+                  f.parameters.map(p => NameLiteral(p.name))
+                )
+              ),
+              inline = true
+            )
+        )
     )
 
     def indenter(em: Emittable): String = em match {
@@ -78,10 +109,16 @@ object HeaderCompiler {
     }
 
     val ast = for {
+      pkgDec <- PackageDeclaration(header.name.pkg).toDotty()
+      imprt <- WildCardImport(Pkg("java", "foreign", "annotations"))
+        .toDotty()
+      nhLines <- nh.toDotty
       traitLines <- traitAst.toDotty()
       objectLines <- objectAst.toDotty()
     } yield {
-      (fileHeader ++ traitLines ++ objectLines).map(indenter).mkString("\n")
+      (pkgDec ++ imprt ++ nhLines ++ traitLines ++ objectLines)
+        .map(indenter)
+        .mkString("\n")
     }
 
     ast.fold(throw _, s => { IO.write(file, s); file })

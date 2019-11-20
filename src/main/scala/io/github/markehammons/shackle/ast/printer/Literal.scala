@@ -1,3 +1,3 @@
 package io.github.markehammons.shackle.ast.printer
 
-trait Literal {}
+trait Literal extends Renderable {}

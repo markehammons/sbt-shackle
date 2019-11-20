@@ -2,6 +2,14 @@ package io.github.markehammons.shackle.ast.printer
 
 import io.github.markehammons.shackle.ast.{Param, TypeAst}
 
+trait MethodT extends Printable {
+  def name: String
+  def returnType: TypeAst
+  def body: Seq[Printable]
+  def inline: Boolean
+  def accessModifier: AccessModifier
+}
+
 case class Method(
     name: String,
     returnType: TypeAst,
@@ -32,5 +40,27 @@ case class Method(
         else ""}"
       ) +: bodyRep
     }
+  }
+}
+
+case class ParenlessMethod(
+    name: String,
+    returnType: TypeAst,
+    inline: Boolean = false,
+    accessModifier: AccessModifier = Pub
+)(val body: Printable*)
+    extends MethodT {
+  override def toDotty(): Either[Exception, Seq[Emittable]] = {
+    body
+      .foldLeft(Right(Seq.empty): Either[Exception, Seq[Emittable]])(
+        (maybeSeq, p) =>
+          maybeSeq.flatMap(s => p.toDotty().map(v => s ++ v.map(Indent)))
+      )
+      .map(
+        s =>
+          Line(s"${accessModifier.asDottyString()}${if (inline) "inline "
+          else ""}def $name: ${returnType.asDottyString}${if (s.nonEmpty) " ="
+          else ""}") +: s
+      )
   }
 }

@@ -10,6 +10,7 @@ import io.github.markehammons.shackle.ast.printer.{
   MethodCall,
   NameLiteral,
   Object,
+  ParenlessMethod,
   Printable,
   Priv,
   Prot,
@@ -43,7 +44,7 @@ case class Struct(
           m =>
             m.nativeLocation +: Seq(
               SVAnnotation("NativeGetter", StringLiteral(m.cname)),
-              Method(m.name, m.typ),
+              ParenlessMethod(m.name, m.typ)(),
               SVAnnotation("NativeSetter", StringLiteral(m.cname)),
               Method(
                 s"${m.name}_=",
@@ -59,16 +60,15 @@ case class Struct(
             )
         ) ++ Seq(
           Object(
-            ClassName(Package(Nil), "$pointers"),
+            ClassName(Package(Nil), "_ptrs"),
             Nil,
             cas = true,
             body = members.map(
               m =>
-                Method(
+                ParenlessMethod(
                   m.name,
-                  PointerType(m.typ),
-                  body = Seq(MethodCall(s"${m.name}$$ptr"))
-                )
+                  PointerType(m.typ)
+                )(MethodCall(s"${m.name}$$ptr"))
             )
           )
 //          Method(

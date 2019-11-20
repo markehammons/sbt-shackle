@@ -2,45 +2,15 @@ package io.github.markehammons.shackle.dotty
 
 import java.io.File
 
-import com.github.javaparser.ast.{
-  CompilationUnit,
-  ImportDeclaration,
-  Modifier,
-  NodeList
-}
-import com.github.javaparser.ast.body.{
-  ClassOrInterfaceDeclaration,
-  MethodDeclaration
-}
+import com.github.javaparser.ast.CompilationUnit
 import com.github.javaparser.ast.expr.{
   SingleMemberAnnotationExpr,
   StringLiteralExpr
 }
-import io.github.markehammons.shackle.ast._
-import io.github.markehammons.shackle.ast.{Package => Pkg}
-import sbt.io.IO
-import io.github.markehammons.shackle.ast.printer.{
-  ArrayLiteral,
-  ClassLiteral,
-  Emittable,
-  Indent,
-  Line,
-  MVAnnotation,
-  Method,
-  MethodCall,
-  NameLiteral,
-  Object,
-  PackageDeclaration,
-  Priv,
-  SingleImport,
-  StringLiteral,
-  Trait,
-  VariableDeclaration,
-  WildCardImport,
-  WildcardExport,
-  CastExpression
-}
+import io.github.markehammons.shackle.ast.printer._
+import io.github.markehammons.shackle.ast.{Package => Pkg, _}
 import sbt._
+import sbt.io.IO
 
 object HeaderCompiler {
   def dryRun(header: Header, autoSourceDir: File): File = {
@@ -171,7 +141,7 @@ object HeaderCompiler {
       pkgDec <- PackageDeclaration(header.name.pkg).toDotty()
       imprt <- WildCardImport(Pkg("java", "foreign", "annotations"))
         .toDotty()
-      nhLines <- nh.toDotty
+      nhLines <- nh.toDotty()
       traitLines <- traitAst.toDotty()
       objectLines <- objectAst.toDotty()
     } yield {
@@ -183,7 +153,6 @@ object HeaderCompiler {
     ast.fold(throw _, s => {
       IO.write(file, s)
       if (varargFunctions.nonEmpty) {
-        println(s"auxfile emitted: ${auxFile.getCanonicalPath}")
         Seq(file, auxFile)
       } else {
         Seq(file)

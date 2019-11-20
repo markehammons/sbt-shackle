@@ -77,6 +77,8 @@ object Shackle extends AutoPlugin {
         logger.log.info(s"skipping regenerating of files")
         sources
       } else {
+        logger.log.debug(s"sources: ${sources.mkString(",")}")
+
         val asts = extractedJ.map(AstGenerator.apply(_, logger))
 
         logger.log.debug("completed generation of asts:")
@@ -94,7 +96,7 @@ object Shackle extends AutoPlugin {
           logger.log.info("using new generator")
           renamePhase.flatMap(HeaderCompiler.nCompile(_, sourceDir))
         } else {
-          renamePhase.map(HeaderCompiler.compile(_, sourceDir)).flatMap(Seq(_))
+          renamePhase.map(HeaderCompiler.compile(_, sourceDir))
         }
       }
     },

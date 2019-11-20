@@ -15,10 +15,15 @@ object JavaExtract {
       file: File,
       streams: TaskStreams
   )(fn: (File, String, TaskStreams) => T): Seq[T] = {
-    val headers = file.listFiles().filter(_.isFile).map(_.getName).map {
-      case regex(headername, _) => headername
-      case s                    => ???
-    }
+    val headers = file
+      .listFiles()
+      .filter(_.isFile)
+      .map(_.getName)
+      .map {
+        case regex(headername, _) => headername
+        case _                    => ???
+      }
+      .toSet
 
     val folders = file.listFiles().filter(_.isDirectory)
     val fs = headers.map(h => fn(file, h, streams))

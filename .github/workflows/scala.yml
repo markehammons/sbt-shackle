@@ -6,6 +6,8 @@ jobs:
   build:
 
     runs-on: ubuntu-latest
+    container:
+        image: docker://markehammons/shackle-test-environments:opensuse-tw-latest
 
     steps:
     - uses: actions/checkout@v1

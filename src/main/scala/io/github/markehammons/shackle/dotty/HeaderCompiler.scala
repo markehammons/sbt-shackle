@@ -161,8 +161,6 @@ object HeaderCompiler {
   }
 
   def compile(header: Header, autoSourceDir: File): File = {
-
-    nCompile(header, autoSourceDir)
     val file = header.name.pkg.path.foldLeft(autoSourceDir) {
       case (p, s) => p / s
     } / s"${header.name.name}.scala"

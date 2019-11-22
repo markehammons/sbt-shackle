@@ -1,0 +1,19 @@
+FROM opensuse/tumbleweed
+
+WORKDIR /opt/
+
+RUN zypper refresh
+RUN zypper ar -G https://sbt.bintray.com/rpm sbt
+RUN zypper in -y curl tar
+RUN curl https://download.java.net/java/early_access/panama/1/openjdk-14-panama+1-15_linux-x64_bin.tar.gz > JDK-14.tar.gz && \
+    tar xvf JDK-14.tar.gz && \
+    rm JDK-14.tar.gz
+
+RUN zypper rm -y tar curl
+
+RUN update-alternatives --install /usr/bin/java java /opt/jdk-14/bin/java 1 && \
+    update-alternatives --install /usr/bin/javac javac /opt/jdk-14/bin/javac 1
+
+RUN zypper in -y gcc-devel sbt
+
+RUN zypper clean -a

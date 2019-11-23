@@ -1,11 +1,12 @@
 package io.github.markehammons.shackle
 
+import com.github.javaparser.StaticJavaParser
 import sbt.AutoPlugin
 import sbt.io.syntax.File
 import sbt._
 import sbt.Keys._
-
 import dotty.HeaderCompiler
+import ast.Header
 
 object Shackle extends AutoPlugin {
   object autoImport {
@@ -59,32 +60,33 @@ object Shackle extends AutoPlugin {
     shackle := {
       val logger = streams.value
 
-      val workDirectory = target.in(compile).value / "jextract" / "javaSources"
+      val workDirectory = target.in(compile).value / "shackle"
+
+      val filesCache = workDirectory / "files"
 
       val (extractedJ, cached) = jextract.value
 
       val sourceDir = (sourceManaged in Compile).value
-      val sources = extractedJ
-        .map(IO.relativize(workDirectory, _))
-        .flatMap(
-          _.map(f => sourceDir / s"${f.stripSuffix(".java")}.scala")
-            .fold(List.empty[File])(f => List(f))
-        )
 
       val useNgenerator = useNewGenerator.?.value
 
-      if (cached && sources.forall(_.exists())) {
-        logger.log.info(s"skipping regenerating of files")
-        sources
-      } else {
-        logger.log.debug(s"sources: ${sources.mkString(",")}")
+      val outputs =
+        if (filesCache.exists()) IO.readLines(filesCache).map(file)
+        else Seq.empty
 
-        val asts = extractedJ.map(AstGenerator.apply(_, logger))
+      if (cached && filesCache.exists() && outputs
+            .forall(_.exists())) {
+        logger.log.info(s"skipping regenerating of files")
+        outputs
+      } else {
+        val cus = extractedJ.map(StaticJavaParser.parse)
+
+        val asts = cus.map(Header.parseFromCompilationUnit)
 
         logger.log.debug("completed generation of asts:")
 
         val renamePhase = asts.map {
-          case Right(header) => Renamer.apply(header, Minimal)
+          case Right(header) => Renamer.apply(header)
           case Left(exception) =>
             sys.error(
               s"${exception.getMessage}\n" + exception.getStackTrace
@@ -92,12 +94,19 @@ object Shackle extends AutoPlugin {
             )
         }
 
-        if (useNgenerator.forall(identity)) {
+        val filesOut = if (useNgenerator.forall(identity)) {
           logger.log.info("using new generator")
           renamePhase.flatMap(HeaderCompiler.nCompile(_, sourceDir))
         } else {
           renamePhase.map(HeaderCompiler.compile(_, sourceDir))
         }
+
+        IO.writeLines(
+          filesCache,
+          filesOut.map(_.getCanonicalPath)
+        )
+
+        filesOut
       }
     },
     sourceGenerators in Compile += shackle.taskValue,

@@ -11,15 +11,29 @@ import io.github.markehammons.shackle.ast.printer._
 import io.github.markehammons.shackle.ast.{Package => Pkg, _}
 import sbt._
 import sbt.io.IO
+import scala.collection.JavaConverters._
 
 object HeaderCompiler {
-  def dryRun(header: Header, autoSourceDir: File): File = {
-    val file = header.name.pkg.path.foldLeft(autoSourceDir) {
-      case (p, s) => p / s
-    } / s"${header.name.name}.scala"
-
-    file
-  }
+  def dryRun(cu: CompilationUnit, autoSourceDir: File): Seq[File] = {
+    for {
+      pkg <- cu.getPackageDeclaration.asScala
+        .map(Pkg.fromPackageDeclaration)
+      name <- cu.getPrimaryType.asScala.map(_.getName.asString())
+      hasVarargs <- cu.getPrimaryType.asScala.map(
+        _.getMethods.asScala
+          .exists(_.getParameters.asScala.exists(_.isVarArgs))
+      )
+    } yield {
+      val folder = pkg.path.foldLeft(autoSourceDir)((dir, n) => dir / n)
+      val scalaFile = folder / s"$name.scala"
+      val auxFile = folder / s"$name$$AUX.java"
+      if (hasVarargs) {
+        Seq(scalaFile, auxFile)
+      } else {
+        Seq(scalaFile)
+      }
+    }
+  }.getOrElse(Seq.empty)
 
   def nCompile(header: Header, autoSourceDir: File): Seq[File] = {
     val file = header.name.pkg.path

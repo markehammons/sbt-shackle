@@ -3,10 +3,8 @@ package io.github.markehammons.shackle
 import io.github.markehammons.shackle.ast.Header
 
 object Renamer {
-  def apply(ast: Header, renameLevel: RenameLevel) = {
-    renameLevel match {
-      case Minimal => minimalPhase(ast)
-    }
+  def apply(ast: Header) = {
+    minimalPhase(ast)
   }
 
   val underscoreRegex = """(.*_)""".r
